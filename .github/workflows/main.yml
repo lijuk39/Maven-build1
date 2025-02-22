@@ -1,29 +1,32 @@
-name: CI Pipeline
-
+name: CICD using Maven and tomcat
 on:
-  push:
-    branches:
-      - main
-  pull_request:
-    branches:
-      - main
-
+ push:  # run when there is commit to repo
+ workflow_dispatch:  # run manually
 jobs:
-  build:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      - name: Set up JDK
-        uses: actions/setup-java@v3
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-
-      - name: Build the application
-        run: mvn clean install
-
-      - name: Run Tests
-        run: mvn test
+ CICDjob:
+   runs-on: ubuntu-latest
+   steps:
+    - name: Clone the repo on ubuntu server
+      uses: actions/checkout@v4
+    - name: Install Java and maven on ubuntu server
+      uses: actions/setup-java@v4
+      with:
+       distribution: 'temurin'
+       java-version: '11'
+       cache: 'maven'
+    - name: Build the code 
+      run: mvn package
+    - name: Connect to Lab machine and Deploy the code on tomcat9 
+      uses: cross-the-world/ssh-scp-ssh-pipelines@latest
+      with:
+        host: '13.201.50.8'
+        user: 'labuser'
+        pass: 'Nuvelabs123$'
+        port: 22
+        connect_timeout: 10s
+        first_ssh: |
+          sudo chmod 777 /var/lib/tomcat9/webapps    
+        scp: |
+          './target/*war' => /var/lib/tomcat9/webapps
+        last_ssh: |
+          sudo systemctl restart tomcat9
